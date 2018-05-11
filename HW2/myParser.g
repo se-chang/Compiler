@@ -10,8 +10,9 @@ types_ : INT_TYPE | CHAR_TYPE | VOID_TYPE | FLOAT_TYPE | DOUBLE_TYPE | LONG_TYPE
 star_ : MULTI_OP  star_|;
 array_ : ML_BRACK (DEC_NUM|(ppmm_op_|)ID(ppmm_op_|)) MR_BRACK |;
 declare_value_ : ASSIGN_OP assign_value_ |;
-arithmetic_ : id_ | numbers_ | id_ operators_ id_ | id_ operators_ numbers_ | 
+arithmetic_ : id_ | numbers_ | id_ operators_ id_ | id_ operators_ numbers_ | id_ operators_ CHAR_ | 
 			numbers_ operators_ id_ | numbers_ operators_ numbers_ | id_ ppmm_op_ | ppmm_op_ id_ | function_call_ |;
+ppmm_id_ : ppmm_op_ ID | ID ppmm_op_;
 ppmm_op_ : PP_OP | MM_OP;
 assign_value_ : arithmetic_ | BL_BRACK DEC_NUM BR_BRACK | STRING_ | CHAR_;
 id_ : (NOT_OP|MINUS_OP|) ID array_;
@@ -43,7 +44,7 @@ switch_ : SWITCH_ SL_BRACK ID SR_BRACK BL_BRACK case_ default_ BR_BRACK;
 case_ : CASE_ (DEC_NUM | CHAR_) COLON_ content_ case_  |;
 default_ : DEFAULT_ COLON_ content_ |;
 function_call_ : ID SL_BRACK (.)* SR_BRACK	{ if (TRACEON) System.out.println("function");};	
-assign_ : (ID array_ assign_op (id_ | id_ operators_ id_) | ID array_ assign_op numbers_) SEMIC_	{ if (TRACEON) System.out.println("assign");};
+assign_ : (ID array_ assign_op (id_ | id_ operators_ id_) | ID array_ assign_op numbers_ | ppmm_id_) SEMIC_	{ if (TRACEON) System.out.println("assign");};
 return_ : RETURN_ arithmetic_ SEMIC_;
 
 /*----------------------*/
