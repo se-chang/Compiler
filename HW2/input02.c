@@ -9,17 +9,23 @@ int main(void){
                 stack[top++] = '(';
             }
             else if(line[i]==')'){
-                if(stack[top-1] == '(')
+                if(stack[top] == '('){
                     top--;
-                else valid = 0;
+                }
+                else{
+                    valid = 0;
+                }
             }
             else if(line[i] == '['){
-                stack[top++] = '[';
+                stack[top] = '[';
             }
             else {
-                if(stack[top-1] == '[')
+                if(stack[top] == '['){
                     top--;
-                else valid = 0;
+                }
+                else{
+                    valid = 0;
+                }
             }
         }
         if(valid && !top) {printf("Yes\n");}
