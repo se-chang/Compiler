@@ -7,7 +7,7 @@ grammar myParser;
 program : declare_semic function_ EOF;
 declare_semic : declare_ SEMIC_ declare_semic |;
 types_ : INT_TYPE | CHAR_TYPE | VOID_TYPE | FLOAT_TYPE | DOUBLE_TYPE | LONG_TYPE | LONG_TYPE LONG_TYPE | SHORT_TYPE;
-star_ : MULTI_OP |;
+star_ : MULTI_OP  star_|;
 array_ : ML_BRACK (DEC_NUM|(ppmm_op_|)ID(ppmm_op_|)) MR_BRACK |;
 declare_value_ : ASSIGN_OP assign_value_ |;
 arithmetic_ : id_ | numbers_ | id_ operators_ id_ | id_ operators_ numbers_ | 
@@ -20,24 +20,28 @@ operators_ : PLUS_OP | MINUS_OP | MULTI_OP | DIVID_OP | MOD_OP | PLUS_E_OP | MIN
 			EQ_OP | LE_OP | GE_OP | NE_OP | RSHIFT_OP | LSHIFT_OP | LT_OP | GT_OP |
 			AND_OP | OR_OP | AMPERSAND_ | BIT_OR_OP | NOT_OP | XOR_OP;
 assign_op : EQ_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP;
-declare_other_ : COMMA_ ID array_ declare_value_ declare_other_ |;
+declare_other_ : COMMA_ (types_|) star_ ID array_ declare_value_ declare_other_ |;
 function_ : types_ ID SL_BRACK argument_ SR_BRACK BL_BRACK content_ BR_BRACK function_ |;
 declare_ : (types_|) star_ id_ declare_value_ declare_other_;
 argument_ : declare_ | VOID_TYPE | ;
 content_ : if_ content_		
 		| while_ content_ 	
-		| for_ content_ 	
-		| declare_ SEMIC_ content_ 	
+		| for_ content_ 
+		| switch_ content_
+		| declare_ SEMIC_ content_ 	{ if (TRACEON) System.out.println("declare");}
 		| function_call_ SEMIC_ content_ 	
 		| assign_ content_ 
-		| break_ content_
 		| return_ content_
-		|;
+		| break_ content_	{ if (TRACEON) System.out.println("break");}
+		|	;
 if_ : IF_ SL_BRACK arithmetic_ SR_BRACK BL_BRACK content_ BR_BRACK else_	{ if (TRACEON) System.out.println("if");};	
 else_ : ELSE_ if_ { if (TRACEON) System.out.println("else if");}| ELSE_ BL_BRACK content_ BR_BRACK { if (TRACEON) System.out.println("else");}|	;	
 while_ : WHILE_ SL_BRACK arithmetic_ SR_BRACK BL_BRACK content_  BR_BRACK	{ if (TRACEON) System.out.println("while");};	
-break_ : BREAK_ SEMIC_;
+break_ : BREAK_ SEMIC_ ;
 for_ : FOR_ SL_BRACK declare_ SEMIC_ arithmetic_ SEMIC_ arithmetic_ SR_BRACK BL_BRACK content_ BR_BRACK	{ if (TRACEON) System.out.println("for");};	
+switch_ : SWITCH_ SL_BRACK ID SR_BRACK BL_BRACK case_ default_ BR_BRACK;
+case_ : CASE_ (DEC_NUM | CHAR_) COLON_ content_ case_  |;
+default_ : DEFAULT_ COLON_ content_ |;
 function_call_ : ID SL_BRACK (.)* SR_BRACK	{ if (TRACEON) System.out.println("function");};	
 assign_ : (ID array_ assign_op (id_ | id_ operators_ id_) | ID array_ assign_op numbers_) SEMIC_	{ if (TRACEON) System.out.println("assign");};
 return_ : RETURN_ arithmetic_ SEMIC_;
