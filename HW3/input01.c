@@ -1,15 +1,23 @@
 #include <stdio.h>
 #include "myfile.h"
 
+void scanf();
+void printf();
+
 int main(void){
-	float sum = 0.404410053;
 	int up_bound;
+	int sum, i;
 	while (sum < 87) {
 		scanf("%d", &up_bound);
-        for(int i=1; i<=up_bound; i++){
-			sume += i;
+        for(i=1; i<=up_bound; i++){
+			int aa = 1, sum_int = 8.23;
+			float sum_float;
+			summer += 1;
+			sum_float = sum_int + sum_float;
+			sum_float = sum_int + -3.2;
+			sum_int = sum_float + 4044.10053;
         }
-        if(sum < 87){
+        if(sum < 87.0){
 			printf("Less than 87, Try again!\n");
         }
         else{
