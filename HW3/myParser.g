@@ -32,12 +32,11 @@ declare_ returns [int attr_type] :
 	  }
 	  declare_value_ [$types_.attr_type] {
 		if($types_.attr_type != $declare_value_.attr_type) {
-			System.out.println("Type Error: " + $ID.getLine() + ":Unmatched type for declare_value " + $declare_value_.attr_type);
+			System.out.println("Type Error: " + $ID.getLine() + ": Unmatched type for declare value: " + $ID.getText());
 		}
 	  }
-	  declare_other_ [$types_.attr_type] {
-		
-	  }
+	declare_other_ [$types_.attr_type]
+	
 	| // not using type, check if already declare
 	  ID {
 		if(!symtab.containsKey($ID.text)) {
@@ -47,7 +46,14 @@ declare_ returns [int attr_type] :
 		else {
 			$attr_type = symtab.get($ID.text);
 		}
-	} declare_value_[$attr_type] declare_other_[$attr_type];
+	} declare_value_[$attr_type] {
+		if($attr_type != $declare_value_.attr_type && $attr_type > -1) {
+			System.out.println("Type Error: " + $ID.getLine() + ": Unmatched type for declare value: " + $ID.getText());
+			$attr_type = -2;
+		}
+	  }
+	declare_other_[$attr_type];
+
 declare_semic : declare_ SEMIC_ declare_semic |;
 types_ returns [int attr_type] : 
 	  INT_TYPE { $attr_type = 1; }
@@ -58,68 +64,98 @@ types_ returns [int attr_type] :
 declare_value_ [int parent_type] returns [int attr_type]: ASSIGN_OP assign_value_ { $attr_type = $assign_value_.attr_type; }
 	| { $attr_type = $parent_type; };
 declare_other_[int parent_type] returns [int attr_type]: COMMA_ ID{
-	if(!symtab.containsKey($ID.text)) {
-		symtab.put($ID.text, $parent_type);
-	}
-	else {
-		System.out.println("Type Error: " + $ID.getLine() + ": Redclared identifier " + $ID.getText());
-		$attr_type = -2;
-	}
-	}declare_value_[$parent_type] declare_other_[$parent_type] |;
+		if(!symtab.containsKey($ID.text)) {
+			symtab.put($ID.text, $parent_type);
+			$attr_type = $parent_type;
+		}
+		else {
+			System.out.println("Type Error: " + $ID.getLine() + ": Redclared identifier " + $ID.getText());
+			$attr_type = -2;
+		}
+	}declare_value_[$parent_type] declare_other_[$parent_type] 
+	| { $attr_type = $parent_type; };
 arithmetic_ returns [int attr_type] : 
 	  ID { 
-		if(!symtab.containsKey($ID.text))
+		if(!symtab.containsKey($ID.text)){
 			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText());
+			$attr_type = -1;
+		}
 		else
 			$attr_type = symtab.get($ID.text); 
-		} 
+	} 
 	| numbers_ { $attr_type = $numbers_.attr_type; }
 	| a = ID operators_ b = ID {
-		if(!symtab.containsKey($a.text)) 
+		if(!symtab.containsKey($a.text)) {
 			System.out.println("Type Error: " + $a.getLine() + ": Undeclared identifier " + $a.getText());
-		if(!symtab.containsKey($b.text)) 
+			$attr_type = -1;
+		
+			if(!symtab.containsKey($b.text)) { 
+				System.out.println("Type Error: " + $b.getLine() + ": Undeclared identifier " + $b.getText());
+				$attr_type = -1;
+			}
+		}
+		else if(!symtab.containsKey($b.text)) { 
 			System.out.println("Type Error: " + $b.getLine() + ": Undeclared identifier " + $b.getText());
-		if(symtab.get($a.text) != symtab.get($b.text))
+			$attr_type = -1;
+		}
+		else if(symtab.get($a.text) != symtab.get($b.text)) {
 			System.out.println("Type Error: " + $a.getLine() + ": Type mismatch: " + $a.getText() + " and " + $b.getText());
-		else
+			$attr_type = -2;
+		}
+		else{
 			$attr_type = symtab.get($a.text);
 		}
+	}
 	| ID operators_ numbers_ {
-		if(!symtab.containsKey($ID.text))
+		if(!symtab.containsKey($ID.text)) {
 			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
-		else if(symtab.get($ID.text) != $numbers_.attr_type)
-			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch with the number: " + $ID.getText());
+			$attr_type = -1;
+		}
+		else if(symtab.get($ID.text) != $numbers_.attr_type) {
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch: " + $ID.getText() + " and " + $numbers_.text);
+			$attr_type = -2;
+		}
 		else
 			$attr_type = $numbers_.attr_type;
-		}
+	}
 	| ID operators_ CHAR_ {
-		if(!symtab.containsKey($ID.text))
+		if(!symtab.containsKey($ID.text)) {
 			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
-		else if(symtab.get($ID.text) != 2)
-			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch with CHAR: " + $ID.getText());
+			$attr_type = -1;
+		}
+		else if(symtab.get($ID.text) != 2) {
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch: " + $ID.getText() + " and " + $CHAR_.text);
+			$attr_type = -2;
+		}
 		else
 			$attr_type = 2;
-		}
+	}
 	| numbers_ operators_ ID {
-		if(!symtab.containsKey($ID.text))
+		if(!symtab.containsKey($ID.text)) {
 			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
-		else if(symtab.get($ID.text) != $numbers_.attr_type)
-			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch with the number: " + $ID.getText());
+			$attr_type = -1;
+		}
+		else if(symtab.get($ID.text) != $numbers_.attr_type){
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch: " + $numbers_.text + " and " + $ID.getText());
+			$attr_type = -1;
+		}
 		else
 			$attr_type = $numbers_.attr_type;
-		}
+	}
 	| c = numbers_ operators_ d = numbers_ {
-		if($c.attr_type != $d.attr_type)
-			System.out.println("Type Error: " + $c.start.getLine() + ": Type mismatch between two numbers" + $c.text);
+		if($c.attr_type != $d.attr_type){
+			System.out.println("Type Error: " + $c.start.getLine() + ": Type mismatch: " + $c.text + " and " + $d.text);
+			$attr_type = -1;
+		}
 		else
 			$attr_type = $c.attr_type;
-		}
+	}
 	| ppmm_id_ {
 			$attr_type = $ppmm_id_.attr_type;
-		}
+	}
 	| function_call_ {
 			$attr_type = $function_call_.attr_type;
-		};
+	};
 numbers_ returns [int attr_type] : 
 	  DEC_NUM { $attr_type = 1; }
 	| FLOAT_NUM { $attr_type = 4; }
