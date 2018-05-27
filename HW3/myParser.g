@@ -31,7 +31,7 @@ declare_ returns [int attr_type] :
 		}
 	  }
 	  declare_value_ [$types_.attr_type] {
-		if($types_.attr_type != declare_value_.attr_type) {
+		if($types_.attr_type != $declare_value_.attr_type) {
 			System.out.println("Type Error: " + $ID.getLine() + ":Unmatched type for declare_value " + $declare_value_.attr_type);
 		}
 	  }
@@ -65,9 +65,61 @@ declare_other_[int parent_type] returns [int attr_type]: COMMA_ ID{
 		System.out.println("Type Error: " + $ID.getLine() + ": Redclared identifier " + $ID.getText());
 		$attr_type = -2;
 	}
-}declare_value_[$parent_type] declare_other_[$parent_type] |;
-arithmetic_ : ID | numbers_ | ID operators_ ID | ID operators_ numbers_ | ID operators_ CHAR_ | 
-			numbers_ operators_ ID | numbers_ operators_ numbers_ | ppmm_id_ | function_call_ |;
+	}declare_value_[$parent_type] declare_other_[$parent_type] |;
+arithmetic_ returns [int attr_type] : 
+	  ID { 
+		if(!symtab.containsKey($ID.text))
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText());
+		else
+			$attr_type = symtab.get($ID.text); 
+		} 
+	| numbers_ { $attr_type = $numbers_.attr_type; }
+	| a = ID operators_ b = ID {
+		if(!symtab.containsKey($a.text)) 
+			System.out.println("Type Error: " + $a.getLine() + ": Undeclared identifier " + $a.getText());
+		if(!symtab.containsKey($b.text)) 
+			System.out.println("Type Error: " + $b.getLine() + ": Undeclared identifier " + $b.getText());
+		if(symtab.get($a.text) != symtab.get($b.text))
+			System.out.println("Type Error: " + $a.getLine() + ": Type mismatch: " + $a.getText() + " and " + $b.getText());
+		else
+			$attr_type = symtab.get($a.text);
+		}
+	| ID operators_ numbers_ {
+		if(!symtab.containsKey($ID.text))
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		else if(symtab.get($ID.text) != $numbers_.attr_type)
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch with the number: " + $ID.getText());
+		else
+			$attr_type = $numbers_.attr_type;
+		}
+	| ID operators_ CHAR_ {
+		if(!symtab.containsKey($ID.text))
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		else if(symtab.get($ID.text) != 2)
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch with CHAR: " + $ID.getText());
+		else
+			$attr_type = 2;
+		}
+	| numbers_ operators_ ID {
+		if(!symtab.containsKey($ID.text))
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		else if(symtab.get($ID.text) != $numbers_.attr_type)
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch with the number: " + $ID.getText());
+		else
+			$attr_type = $numbers_.attr_type;
+		}
+	| c = numbers_ operators_ d = numbers_ {
+		if($c.attr_type != $d.attr_type)
+			System.out.println("Type Error: " + $c.start.getLine() + ": Type mismatch between two numbers" + $c.text);
+		else
+			$attr_type = $c.attr_type;
+		}
+	| ppmm_id_ {
+			$attr_type = $ppmm_id_.attr_type;
+		}
+	| function_call_ {
+			$attr_type = $function_call_.attr_type;
+		};
 numbers_ returns [int attr_type] : 
 	  DEC_NUM { $attr_type = 1; }
 	| FLOAT_NUM { $attr_type = 4; }
@@ -77,10 +129,37 @@ numbers_ returns [int attr_type] :
 operators_ : PLUS_OP | MINUS_OP | MULTI_OP | DIVID_OP | MOD_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP | 
 	EQ_OP | LE_OP | GE_OP | NE_OP | RSHIFT_OP | LSHIFT_OP | LT_OP | GT_OP |
 	AND_OP | OR_OP | AMPERSAND_ | BIT_OR_OP | NOT_OP | XOR_OP;
-ppmm_id_ : ppmm_op_ ID | ID ppmm_op_;
+ppmm_id_ returns [int attr_type]: 
+	  ppmm_op_ ID {
+		if(!symtab.containsKey($ID.text)){
+			$attr_type = -2;
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		}
+		else{
+			$attr_type = symtab.get($ID.text);
+		}
+	  }
+	| ID ppmm_op_ {
+		if(!symtab.containsKey($ID.text)){
+			$attr_type = -2;
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		}
+		else{
+			$attr_type = symtab.get($ID.text);
+		}
+	}
+	;
 ppmm_op_ : PP_OP | MM_OP;
 
-function_ : types_ ID SL_BRACK argument_ SR_BRACK BL_BRACK content_ BR_BRACK function_ |;
+function_ returns [int attr_type]: types_ ID {
+		if(!symtab.containsKey($ID.text)) {
+			symtab.put($ID.text, $types_.attr_type);
+		}
+		else {
+			System.out.println("Type Error: " + $ID.getLine() + ": Redeclared identifier " + $ID.getText());
+			$attr_type = -2;
+		}
+	}SL_BRACK argument_ SR_BRACK BL_BRACK content_ BR_BRACK function_ |;
 argument_ : declare_ | VOID_TYPE | ;
 content_ : if_ content_		
 	| while_ content_ 	
@@ -100,7 +179,16 @@ for_ : FOR_ SL_BRACK declare_ SEMIC_ arithmetic_ SEMIC_ arithmetic_ SR_BRACK BL_
 switch_ : SWITCH_ SL_BRACK ID SR_BRACK BL_BRACK case_ default_ BR_BRACK;
 case_ : CASE_ (DEC_NUM | CHAR_) COLON_ content_ case_  |;
 default_ : DEFAULT_ COLON_ content_ |;
-function_call_ : ID SL_BRACK (.)* SR_BRACK	{ if (TRACEON) System.out.println("function");};	
+function_call_ returns [int attr_type] : ID SL_BRACK (.)* SR_BRACK{
+		if(!symtab.containsKey($ID.text)){
+			$attr_type = -2;
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		}
+		else{
+			$attr_type = symtab.get($ID.text);
+		}
+	};
+	
 assign_ : (ID assign_op_ (ID | ID operators_ ID) | ID assign_op_ numbers_ | ppmm_id_) SEMIC_	{ if (TRACEON) System.out.println("assign");};
 assign_op_ : EQ_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP;
 assign_value_ returns [int attr_type]: arithmetic_{ $attr_type = $arithmetic_.attr_type; } | CHAR_ { $attr_type = 2; };
