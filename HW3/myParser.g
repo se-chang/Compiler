@@ -24,6 +24,7 @@ declare_ returns [int attr_type] :
 	  types_ ID {
 		if(!symtab.containsKey($ID.text)) {
 			symtab.put($ID.text, $types_.attr_type);
+			$attr_type = $types_.attr_type;
 		}
 		else {
 			System.out.println("Type Error: " + $ID.getLine() + ": Redeclared identifier " + $ID.getText());
@@ -33,36 +34,23 @@ declare_ returns [int attr_type] :
 	  declare_value_ [$types_.attr_type] {
 		if($types_.attr_type != $declare_value_.attr_type) {
 			System.out.println("Type Error: " + $ID.getLine() + ": Unmatched type for declare value: " + $ID.getText());
+			$attr_type = $types_.attr_type;
 		}
 	  }
-	declare_other_ [$types_.attr_type]
-	
-	| // not using type, check if already declare
-	  ID {
-		if(!symtab.containsKey($ID.text)) {
-			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText());
-			$attr_type = -1;
-		}
-		else {
-			$attr_type = symtab.get($ID.text);
-		}
-	} declare_value_[$attr_type] {
-		if($attr_type != $declare_value_.attr_type && $attr_type > -1) {
-			System.out.println("Type Error: " + $ID.getLine() + ": Unmatched type for declare value: " + $ID.getText());
-			$attr_type = -2;
-		}
-	  }
-	declare_other_[$attr_type];
+	declare_other_ [$types_.attr_type];
 
 declare_semic : declare_ SEMIC_ declare_semic |;
+
 types_ returns [int attr_type] : 
 	  INT_TYPE { $attr_type = 1; }
 	| CHAR_TYPE { $attr_type = 2; }
 	| VOID_TYPE { $attr_type = 3; }
 	| FLOAT_TYPE { $attr_type = 4; }
 	;
+
 declare_value_ [int parent_type] returns [int attr_type]: ASSIGN_OP assign_value_ { $attr_type = $assign_value_.attr_type; }
 	| { $attr_type = $parent_type; };
+
 declare_other_[int parent_type] returns [int attr_type]: COMMA_ ID{
 		if(!symtab.containsKey($ID.text)) {
 			symtab.put($ID.text, $parent_type);
@@ -72,8 +60,15 @@ declare_other_[int parent_type] returns [int attr_type]: COMMA_ ID{
 			System.out.println("Type Error: " + $ID.getLine() + ": Redclared identifier " + $ID.getText());
 			$attr_type = -2;
 		}
-	}declare_value_[$parent_type] declare_other_[$parent_type] 
+	} declare_value_[$parent_type] {
+		if($attr_type != $declare_value_.attr_type && $attr_type > -1) {
+			System.out.println("Type Error: " + $ID.getLine() + ": Unmatched type for declare value: " + $ID.getText());
+			$attr_type = -2;
+		}
+	  }
+	declare_other_[$parent_type] 
 	| { $attr_type = $parent_type; };
+
 arithmetic_ returns [int attr_type] : 
 	  ID { 
 		if(!symtab.containsKey($ID.text)){
@@ -87,8 +82,7 @@ arithmetic_ returns [int attr_type] :
 	| a = ID operators_ b = ID {
 		if(!symtab.containsKey($a.text)) {
 			System.out.println("Type Error: " + $a.getLine() + ": Undeclared identifier " + $a.getText());
-			$attr_type = -1;
-		
+			$attr_type = -1;		
 			if(!symtab.containsKey($b.text)) { 
 				System.out.println("Type Error: " + $b.getLine() + ": Undeclared identifier " + $b.getText());
 				$attr_type = -1;
@@ -156,15 +150,18 @@ arithmetic_ returns [int attr_type] :
 	| function_call_ {
 			$attr_type = $function_call_.attr_type;
 	};
+
 numbers_ returns [int attr_type] : 
 	  DEC_NUM { $attr_type = 1; }
 	| FLOAT_NUM { $attr_type = 4; }
 	| MINUS_OP DEC_NUM { $attr_type = 1; }
 	| MINUS_OP FLOAT_NUM { $attr_type = 4; }
 	;
+
 operators_ : PLUS_OP | MINUS_OP | MULTI_OP | DIVID_OP | MOD_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP | 
 	EQ_OP | LE_OP | GE_OP | NE_OP | RSHIFT_OP | LSHIFT_OP | LT_OP | GT_OP |
 	AND_OP | OR_OP | AMPERSAND_ | BIT_OR_OP | NOT_OP | XOR_OP;
+
 ppmm_id_ returns [int attr_type]: 
 	  ppmm_op_ ID {
 		if(!symtab.containsKey($ID.text)){
@@ -185,18 +182,22 @@ ppmm_id_ returns [int attr_type]:
 		}
 	}
 	;
+
 ppmm_op_ : PP_OP | MM_OP;
 
 function_ returns [int attr_type]: types_ ID {
 		if(!symtab.containsKey($ID.text)) {
 			symtab.put($ID.text, $types_.attr_type);
+			$attr_type = $types_.attr_type;
 		}
 		else {
 			System.out.println("Type Error: " + $ID.getLine() + ": Redeclared identifier " + $ID.getText());
 			$attr_type = -2;
 		}
-	}SL_BRACK argument_ SR_BRACK BL_BRACK content_ BR_BRACK function_ |;
+	}SL_BRACK argument_ SR_BRACK ((BL_BRACK content_ BR_BRACK)|SEMIC_) function_ |;
+
 argument_ : declare_ | VOID_TYPE | ;
+
 content_ : if_ content_		
 	| while_ content_ 	
 	| for_ content_ 
@@ -211,7 +212,7 @@ content_ : if_ content_
 if_ : IF_ SL_BRACK arithmetic_ SR_BRACK BL_BRACK content_ BR_BRACK else_	{ if (TRACEON) System.out.println("if");};
 else_ : ELSE_ if_ { if (TRACEON) System.out.println("else if");}| ELSE_ BL_BRACK content_ BR_BRACK { if (TRACEON) System.out.println("else");}|	;	
 while_ : WHILE_ SL_BRACK arithmetic_ SR_BRACK BL_BRACK content_  BR_BRACK	{ if (TRACEON) System.out.println("while");};	
-for_ : FOR_ SL_BRACK declare_ SEMIC_ arithmetic_ SEMIC_ arithmetic_ SR_BRACK BL_BRACK content_ BR_BRACK	{ if (TRACEON) System.out.println("for");};	
+for_ : FOR_ SL_BRACK (declare_ SEMIC_|assign_) arithmetic_ SEMIC_ arithmetic_ SR_BRACK BL_BRACK content_ BR_BRACK	{ if (TRACEON) System.out.println("for");};	
 switch_ : SWITCH_ SL_BRACK ID SR_BRACK BL_BRACK case_ default_ BR_BRACK;
 case_ : CASE_ (DEC_NUM | CHAR_) COLON_ content_ case_  |;
 default_ : DEFAULT_ COLON_ content_ |;
@@ -225,8 +226,14 @@ function_call_ returns [int attr_type] : ID SL_BRACK (.)* SR_BRACK{
 		}
 	};
 	
-assign_ : (ID assign_op_ (ID | ID operators_ ID) | ID assign_op_ numbers_ | ppmm_id_) SEMIC_	{ if (TRACEON) System.out.println("assign");};
-assign_op_ : EQ_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP;
+assign_ : (ID assign_op_ assign_value_ | ppmm_id_){ 
+		if(!symtab.containsKey($ID.text))
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		else if(symtab.get($ID.text) != $assign_value_.attr_type && $assign_value_.attr_type>-1)
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch: " + $ID.getText());
+	}
+	SEMIC_;
+assign_op_ : ASSIGN_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP;
 assign_value_ returns [int attr_type]: arithmetic_{ $attr_type = $arithmetic_.attr_type; } | CHAR_ { $attr_type = 2; };
 return_ : RETURN_ arithmetic_ SEMIC_ { if(TRACEON) System.out.println("return"); };
 break_ : BREAK_ SEMIC_ ;
