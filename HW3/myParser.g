@@ -13,36 +13,67 @@ grammar myParser;
 	   2 => char
 	   3 => void
 	   4 => float
-	   5 => double
-	   6 => long
-	   7 => long long
-	   8 => short
+	   -1 => do not exist
 	   -2 => error
 	*/
 }
 
 program : declare_semic function_ EOF	{ System.out.println("\nDONE!!\n"); };
 
-declare_ : (types_|) star_ id_ declare_value_ declare_other_;
+declare_ returns [int attr_type] : 
+	  types_ ID {
+		if(!symtab.containsKey($ID.text)) {
+			symtab.put($ID.text, $types_.attr_type);
+		}
+		else {
+			System.out.println("Type Error: " + $ID.getLine() + ": Redeclared identifier " + $ID.getText());
+			$attr_type = -2;
+		}
+	  }
+	  declare_value_ [$types_.attr_type] {
+		if($types_.attr_type != declare_value_.attr_type) {
+			System.out.println("Type Error: " + $ID.getLine() + ":Unmatched type for declare_value " + $declare_value_.attr_type);
+		}
+	  }
+	  declare_other_ [$types_.attr_type] {
+		
+	  }
+	| // not using type, check if already declare
+	  ID {
+		if(!symtab.containsKey($ID.text)) {
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText());
+			$attr_type = -1;
+		}
+		else {
+			$attr_type = symtab.get($ID.text);
+		}
+	} declare_value_[$attr_type] declare_other_[$attr_type];
 declare_semic : declare_ SEMIC_ declare_semic |;
 types_ returns [int attr_type] : 
 	  INT_TYPE { $attr_type = 1; }
 	| CHAR_TYPE { $attr_type = 2; }
 	| VOID_TYPE { $attr_type = 3; }
 	| FLOAT_TYPE { $attr_type = 4; }
-	| DOUBLE_TYPE { $attr_type = 5; }
-	| LONG_TYPE { $attr_type = 6; }
-	| LONG_TYPE LONG_TYPE { $attr_type = 7; }
-	| SHORT_TYPE { $attr_type = 8; }
 	;
-star_ : MULTI_OP  star_ |;
-id_ : (NOT_OP | MINUS_OP|) ID array_;
-array_ : ML_BRACK (DEC_NUM | ID | ppmm_id_) MR_BRACK |;
-declare_value_ : ASSIGN_OP assign_value_ |;
-declare_other_ : COMMA_ star_ ID array_ declare_value_ declare_other_ |;
-arithmetic_ : id_ | numbers_ | id_ operators_ id_ | id_ operators_ numbers_ | id_ operators_ CHAR_ | 
-			numbers_ operators_ id_ | numbers_ operators_ numbers_ | ppmm_id_ | function_call_ |;
-numbers_ : DEC_NUM | FLOAT_NUM | MINUS_OP DEC_NUM | MINUS_OP FLOAT_NUM;
+declare_value_ [int parent_type] returns [int attr_type]: ASSIGN_OP assign_value_ { $attr_type = $assign_value_.attr_type; }
+	| { $attr_type = $parent_type; };
+declare_other_[int parent_type] returns [int attr_type]: COMMA_ ID{
+	if(!symtab.containsKey($ID.text)) {
+		symtab.put($ID.text, $parent_type);
+	}
+	else {
+		System.out.println("Type Error: " + $ID.getLine() + ": Redclared identifier " + $ID.getText());
+		$attr_type = -2;
+	}
+}declare_value_[$parent_type] declare_other_[$parent_type] |;
+arithmetic_ : ID | numbers_ | ID operators_ ID | ID operators_ numbers_ | ID operators_ CHAR_ | 
+			numbers_ operators_ ID | numbers_ operators_ numbers_ | ppmm_id_ | function_call_ |;
+numbers_ returns [int attr_type] : 
+	  DEC_NUM { $attr_type = 1; }
+	| FLOAT_NUM { $attr_type = 4; }
+	| MINUS_OP DEC_NUM { $attr_type = 1; }
+	| MINUS_OP FLOAT_NUM { $attr_type = 4; }
+	;
 operators_ : PLUS_OP | MINUS_OP | MULTI_OP | DIVID_OP | MOD_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP | 
 	EQ_OP | LE_OP | GE_OP | NE_OP | RSHIFT_OP | LSHIFT_OP | LT_OP | GT_OP |
 	AND_OP | OR_OP | AMPERSAND_ | BIT_OR_OP | NOT_OP | XOR_OP;
@@ -70,9 +101,9 @@ switch_ : SWITCH_ SL_BRACK ID SR_BRACK BL_BRACK case_ default_ BR_BRACK;
 case_ : CASE_ (DEC_NUM | CHAR_) COLON_ content_ case_  |;
 default_ : DEFAULT_ COLON_ content_ |;
 function_call_ : ID SL_BRACK (.)* SR_BRACK	{ if (TRACEON) System.out.println("function");};	
-assign_ : (ID array_ assign_op_ (id_ | id_ operators_ id_) | ID array_ assign_op_ numbers_ | ppmm_id_) SEMIC_	{ if (TRACEON) System.out.println("assign");};
+assign_ : (ID assign_op_ (ID | ID operators_ ID) | ID assign_op_ numbers_ | ppmm_id_) SEMIC_	{ if (TRACEON) System.out.println("assign");};
 assign_op_ : EQ_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP;
-assign_value_ : arithmetic_ | BL_BRACK DEC_NUM BR_BRACK | STRING_ | CHAR_;
+assign_value_ returns [int attr_type]: arithmetic_{ $attr_type = $arithmetic_.attr_type; } | CHAR_ { $attr_type = 2; };
 return_ : RETURN_ arithmetic_ SEMIC_ { if(TRACEON) System.out.println("return"); };
 break_ : BREAK_ SEMIC_ ;
 
