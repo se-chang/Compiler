@@ -224,7 +224,10 @@ if_ : IF_ SL_BRACK arithmetic_ SR_BRACK BL_BRACK content_ BR_BRACK else_	{ if (T
 else_ : ELSE_ if_ { if (TRACEON) System.out.println("else if");}| ELSE_ BL_BRACK content_ BR_BRACK { if (TRACEON) System.out.println("else");}|	;	
 while_ : WHILE_ SL_BRACK arithmetic_ SR_BRACK BL_BRACK content_  BR_BRACK	{ if (TRACEON) System.out.println("while");};	
 for_ : FOR_ SL_BRACK (declare_ SEMIC_|assign_) arithmetic_ SEMIC_ arithmetic_ SR_BRACK BL_BRACK content_ BR_BRACK	{ if (TRACEON) System.out.println("for");};	
-switch_ : SWITCH_ SL_BRACK ID SR_BRACK BL_BRACK case_ default_ BR_BRACK;
+switch_ : SWITCH_ SL_BRACK ID{
+			if(!symtab.containsKey($ID.text))
+				System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText());
+		}SR_BRACK BL_BRACK case_ default_ BR_BRACK;
 case_ : CASE_ (DEC_NUM | CHAR_) COLON_ content_ case_  |;
 default_ : DEFAULT_ COLON_ content_ |;
 function_call_ returns [int attr_type] : ID SL_BRACK (.)* SR_BRACK{
