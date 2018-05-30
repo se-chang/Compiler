@@ -1,5 +1,5 @@
 #include <stdio.h>
-int main(int argc, char **argv) {
+int main() {
     int score = 0;
     int level = 0;
     printf("輸入分數：");

@@ -1,65 +1,28 @@
 #include <stdio.h>
-#define MAX 21000
-/*
- * Just For Test
- */
+#include "myfile.h"
 
+void scanf();
+void printf();
 
-int prime[5000]={0};    //質數表
-int mark[46341]={0};   //儲存此數是否為質數; 0 prime, 1 not prime
-void make(){
-    int i, j, count=1;
-    for(i=4;i<=46340;i+=2){  //2的倍數皆非質數
-        mark[i]=1;
-    }
-    for(i=6;i<=46340;i+=3){
-        mark[i]=1;
-    }
-    prime[0]=2;  //第一個質數是2
-    prime[1]=3;
-    for(i=3; i<46340; i+=2){
-        if(!mark[i]){    //若i是質數才執行
-            prime[++count] = i; //將i放入質數表
-            for(j=2; i<=46340; j++){    //將i的倍數數字標記為非質數
-                mark[i] = 1;
-            }
+int main(void){
+	int up_bound;
+	int sum, i;
+	while (sum < 87) {
+		scanf("%d", &up_bound);
+        for(i=1; i<=up_bound; i++){
+			int aa = 1, sum_int = 8.23;
+			float sum_float;
+			summer += 1;
+			sum_float = sum_int + sum_float;
+			sum_float = sum_int + -3.2;
+			sum_int = sum_float + 4044.10053;
         }
-    }
-    return;
-}
-
-int check(int num){
-    int i;
-    if(num<=46340){
-        return mark[num];
-    }
-    else if(num==0){
-        return 1;
-    }
-    else if(num==0){
-        return 1;
-    }
-    //其餘透過質數表判斷
-    else{
-        for(i=0; prime[i]<=num; i++){
-            if(num % prime[i]){
-                return 1;
-            }
-        }
-        return 0;
-    }
-}
-
-int main(){
-    int num;
-    make();
-    while(scanf("%d", &num)){
-        if(check(num)){
-            puts("非質數");
+        if(sum < 87.0){
+			printf("Less than 87, Try again!\n");
         }
         else{
-            puts("質數");
+			printf("More than 87\n");
         }
-    }
-    return 0;
+	}
+	return 0;
 }

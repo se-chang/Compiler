@@ -1,4 +1,4 @@
-grammar myParser;
+grammar myChecker;
 
 @header {
 	import java.util.HashMap;
@@ -69,7 +69,7 @@ declare_other_[int parent_type] returns [int attr_type]: COMMA_ ID{
 	declare_other_[$parent_type] 
 	| { $attr_type = $parent_type; };
 
-arithmetic_ returns [int attr_type] : 
+arithmetic_ returns [int attr_type] :
 	  ID { 
 		if(!symtab.containsKey($ID.text)){
 			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText());
@@ -198,6 +198,17 @@ function_ returns [int attr_type]: types_ ID {
 
 argument_ : declare_ | VOID_TYPE | ;
 
+assign_ : (ID assign_op_ assign_value_{ 
+		if(!symtab.containsKey($ID.text))
+			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
+		else if(symtab.get($ID.text) != $assign_value_.attr_type && $assign_value_.attr_type>-1)
+			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch: " + $ID.getText());
+	} | ppmm_id_) SEMIC_;
+
+assign_op_ : ASSIGN_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP;
+
+assign_value_ returns [int attr_type]: arithmetic_{ $attr_type = $arithmetic_.attr_type; } | CHAR_ { $attr_type = 2; };
+
 content_ : if_ content_		
 	| while_ content_ 	
 	| for_ content_ 
@@ -225,17 +236,9 @@ function_call_ returns [int attr_type] : ID SL_BRACK (.)* SR_BRACK{
 			$attr_type = symtab.get($ID.text);
 		}
 	};
-	
-assign_ : (ID assign_op_ assign_value_ | ppmm_id_){ 
-		if(!symtab.containsKey($ID.text))
-			System.out.println("Type Error: " + $ID.getLine() + ": Undeclared identifier " + $ID.getText()); 	
-		else if(symtab.get($ID.text) != $assign_value_.attr_type && $assign_value_.attr_type>-1)
-			System.out.println("Type Error: " + $ID.getLine() + ": Type mismatch: " + $ID.getText());
-	}
-	SEMIC_;
-assign_op_ : ASSIGN_OP | PLUS_E_OP | MINUS_E_OP | MULTI_E_OP | DIVID_E_OP;
-assign_value_ returns [int attr_type]: arithmetic_{ $attr_type = $arithmetic_.attr_type; } | CHAR_ { $attr_type = 2; };
+
 return_ : RETURN_ arithmetic_ SEMIC_ { if(TRACEON) System.out.println("return"); };
+
 break_ : BREAK_ SEMIC_ ;
 
 
