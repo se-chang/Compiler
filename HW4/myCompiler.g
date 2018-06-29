@@ -169,15 +169,33 @@ declarations
     | { if (TRACEON) System.out.println("declarations: ");}
     ;
 
-
 l_declarations
-    :
-    type Identifier ';' l_declarations
-    {
-      /* If you want to handle local variables, fix it. */ 
-    }
-    | 
-    ;
+	:
+	  type Identifier ';' l_declarations
+	  {
+			/* If you want to handle local variables, fix it. */
+		if (TRACEON) System.out.println("declarations: type Identifier : declarations");
+		if (symtab.containsKey($Identifier.text)) {
+				System.err.println("Type Error: " + 
+									$Identifier.getLine() + 
+									": Redeclared identifier.");
+		}
+		else {
+				/* Add ID and its attr_type into the symbol table. */
+				symtab.put($Identifier.text, $type.attr_type);
+		}
+		switch($type.attr_type) {
+		case 1: /* Type: integer, size=> 4 bytes, alignment=> 4 byte boundary. */
+		        DataCode.add("\t .common " + $Identifier.text + ",4,4\n");
+				break;
+		case 2: /* Type: float, size=> 4 bytes, alignment=> 4 byte boundary. */
+		        DataCode.add("\t .common " + $Identifier.text + ",4,4\n");
+				break;
+		default:
+		}
+	  }
+	| { if (TRACEON) System.out.println("declarations: ");}
+	;
 
 
 type returns [int attr_type]

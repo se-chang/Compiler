@@ -2,10 +2,11 @@
 
 int a;
 int b;
-int c;
+//int c;
 
 void main()
 {
+	int c;
 	a = 30;
 	b = 8;
 	c = a/b + 15;
@@ -21,6 +22,6 @@ void main()
 	if(c-18){
 		printf("c is not equal to 18.\n");
 	}
-	printf("c=%d\n\n\n\n",c);
+	printf("c = %d\n\n\n\n",c);
 		
 }
